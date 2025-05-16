@@ -13,6 +13,7 @@ void blockingMove(float _pos);
 
 volatile bool eStop = false;
 volatile bool digital_eStop = false;
+volatile bool eStop_old = false;
 bool isHoming = false;
 
 #define maxForce    300000   // maxmimum force at which the machine should e-stop
@@ -89,10 +90,14 @@ void loop() {
     eStop = false;
   }
 
-  // if eStop is pressed, stop the motor
+  // if eStop is triggered, stop the motor
   if(eStop || digital_eStop){
     stopMotor();
-    Serial.println("Error: E-STOP pressed! Motor halted");
+    if (!eStop_old){
+      Serial.println("Error: E-STOP pressed! Motor halted");
+      eStop_old = true();
+    }
+    
   }
   // if the estop is not pressed continue the current routine
   else{
@@ -126,6 +131,7 @@ void loop() {
     else if (inByte == 'p') pressTestPosition(); //carry out a compression test
     else if (inByte == 'k') pressTestForce(); //carry out a compression test
     else if (inByte == 'z') setMotorSpeed(); //read the set speed from the stepper
+    else if (inByte == 'e') clear_eStop(); //clear eStop
   }  // end of recieve commands
 }  // end of (main) loop()
 
@@ -151,6 +157,11 @@ float getScaleMeasurement(){
   Serial.print("Load:");
   Serial.println(measurement);
   return measurement;
+}
+
+void clear_eStop(){
+  digital_eStop = false;
+  eStop_old = false;
 }
 
 void tareScale(){
