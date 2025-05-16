@@ -7,7 +7,7 @@ volatile bool direction = 0;
 volatile float speed = 5;                 // in mm/s
 unsigned int pulseInterval = 1000000 / (speed * spmm);  // Intervall für den Timer
 bool timerPaused = false;               // Gibt an, ob der Timer pausiert ist
-bool safetyBoundsOff = false;           // Schutz für Grenzwerte der Bewegung
+bool safetyBoundsOff = true;           // Schutz für Grenzwerte der Bewegung
 
 
 void pauseTimer() {
