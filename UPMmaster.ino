@@ -95,7 +95,7 @@ void loop() {
     stopMotor();
     if (!eStop_old){
       Serial.println("Error: E-STOP pressed! Motor halted");
-      eStop_old = true();
+      eStop_old = true;
     }
     
   }
