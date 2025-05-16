@@ -10,6 +10,7 @@ void blockingMove(float _pos);
 #define debugRunCommands false
 #define debugComms false
 #define eStopPin CONTROLLINO_I18
+
 bool eStop = false;
 bool isHoming = false;
 
@@ -17,6 +18,7 @@ bool isHoming = false;
 #define pressForce   50000   // (in gramms) target force for the press test
 #define pressDeformation 10  // (in mm) target deformation for the press test
 #define testSpeed         1  // (in mm/s) slow speed for accurate tests
+#define slowTestsEvery  100  // every Nth test is carried out with the (slow) testSpeed
 
 unsigned long time = 0;
 bool setupComplete = false;
@@ -93,8 +95,8 @@ void loop() {
 #endif
   
     // get (smoothed) value from the scale (if available)
-    if (waage_hasUpdate() && autoWaage) {
-      float measurement = LoadCell.getData();
+    if (waage_hasUpdate() && autoWaage ) {
+											 
       getScaleAndPosition();
     }
   }
@@ -121,20 +123,42 @@ void loop() {
   }
 }  // end of (main) loop()
 
-float getScaleAndPosition(){
-  float measurement = LoadCell.getData();
+// void getScaleAndPositionFancy() {
+//   float measurement = LoadCell.getData();  // Abrufen des Messwertes von der Wägezelle
+//   float position = getPosition(); // Position vor dem Drucken abrufen
+//   unsigned long time = millis();  // Aktuelle Zeit abrufen
 
-      // print out force and position values
-      Serial.print("Load_cell:");
-      Serial.print(measurement);
-      Serial.print(" Position:");
-      // print(float,4) returns 4 decimal characters 
-      Serial.println(getPosition(),4);
+//   // Konvertiere die Float- und Zeitwerte in Binärdaten
+//   byte buffer[12]; // Ein Array für effiziente Übertragung (4 Bytes für jede Zahl)
+  
+//   memcpy(buffer, &measurement, sizeof(measurement)); // Kopiere den Messwert (float) in das Array
+//   memcpy(buffer + 4, &position, sizeof(position));   // Kopiere die Position (float) ins Array
+//   memcpy(buffer + 8, &time, sizeof(time));           // Kopiere die Zeit (unsigned long) ins Array
+
+//   // Sende alle Daten auf einmal über Serial.write()
+//   Serial.write(buffer, sizeof(buffer));
+// }
+
+void getScaleAndPosition(){
+  float measurement = LoadCell.getData();
+  float position = getPosition(); // Position vor dem Drucken abrufen
+
+  // Erstelle einen String mit den Werten und sende ihn auf einmal
+								 
+  String output = "Load:" + String(measurement, 0) + 
+                 " Pos:" + String(position, 2) + 
+                 " Time:" + String(millis());
+
+  // Erstelle einen String mit den Werten und sende ihn auf einmal
+  // String output = "Load:" + String(measurement, 0) + 
+  //                 " Pos:" + String(position, 2);
+  
+  Serial.println(output); // Sende alle Informationen in einem Aufruf
 }
 
 float getScaleMeasurement(){
   float measurement = LoadCell.getData();
-  Serial.print("Load_cell:");
+  Serial.print("Load:");
   Serial.println(measurement);
   return measurement;
 }
@@ -269,11 +293,16 @@ void pressTestPosition(){
   // do the number of requested press cycles
   for (int n = 0; n < input; n++){
     Serial.print("Press cycle: ");
-    Serial.println(n);
+    Serial.print(n);
+    if (n % slowTestsEvery == 0){
+      Serial.print(", Slow Cycle");
+    }
+    Serial.print(", Time: ");
+    Serial.println(millis());
 
-    if (n % 100 == 0){
+    if (n % slowTestsEvery == 0){
       setSpeed(testSpeed);
-      Serial.println("Slow Cycle");
+								   
     }
     
     blockingMove(specimenHeight + pressDeformation);
@@ -281,7 +310,7 @@ void pressTestPosition(){
     Serial.println(specimenHeight - 1);
     blockingMove(specimenHeight - 1);
 
-    if (n % 100 == 0){
+    if (n % slowTestsEvery == 0){
       setSpeed(maxSpeed);
     }
   }
@@ -403,7 +432,8 @@ void home(){
   isHoming = true;
 
   Serial.println("Homing...");
-
+  
+  loosePosition();
   setSpeed(maxSpeed);
   moveToPosition(-maxDistance);
 
@@ -462,6 +492,6 @@ void blockingMove(float _pos){
   stopMotor();
 }
 
-//TODO:
-// druckversuch schnell ohne read out
-// druckversuch langsam mit readout
+	   
+									 
+								   
