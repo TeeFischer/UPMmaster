@@ -87,6 +87,10 @@ void loop() {
   if(digitalRead(eStopPin) == LOW){
     eStop = true;
   } else{
+    if(eStop){
+      eStop_old = false;
+      Serial.println("Info: Physical eStop cleared!");
+    }
     eStop = false;
   }
 
