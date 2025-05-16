@@ -160,8 +160,14 @@ float getScaleMeasurement(){
 }
 
 void clear_eStop(){
-  digital_eStop = false;
-  eStop_old = false;
+  if(digital_eStop ){
+    digital_eStop = false;
+    eStop_old = false;
+    Serial.println("Info: Digital eStop cleared!");
+  }
+  else {
+    Serial.println("Info: Digital eStop was clear.");
+  }
 }
 
 void tareScale(){
