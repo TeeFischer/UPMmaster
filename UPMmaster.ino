@@ -16,7 +16,7 @@ volatile bool digital_eStop = false;
 volatile bool eStop_old = false;
 bool isHoming = false;
 
-#define maxForce    300000   // maxmimum force at which the machine should e-stop
+#define maxForce    200000   // maxmimum force at which the machine should e-stop
 #define touchdownForce 100   // (in gramms) force that has to be exceeded to count a touchdown
 #define pressForce   50000   // (in gramms) target force for the press test
 #define pressDeformation  5  // (in mm) target deformation for the press test
