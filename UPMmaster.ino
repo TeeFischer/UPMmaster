@@ -11,13 +11,15 @@ void blockingMove(float _pos);
 #define debugComms false
 #define eStopPin CONTROLLINO_I18
 
-bool eStop = false;
+volatile bool eStop = false;
+volatile bool digital_eStop = false;
 bool isHoming = false;
 
+#define maxForce    300000   // maxmimum force at which the machine should e-stop
 #define touchdownForce 100   // (in gramms) force that has to be exceeded to count a touchdown
 #define pressForce   50000   // (in gramms) target force for the press test
-#define pressDeformation 10  // (in mm) target deformation for the press test
-#define testSpeed         1  // (in mm/s) slow speed for accurate tests
+#define pressDeformation  5  // (in mm) target deformation for the press test
+#define slowTestSpeed     1  // (in mm/s) slow speed for accurate tests
 #define slowTestsEvery  100  // every Nth test is carried out with the (slow) testSpeed
 
 unsigned long time = 0;
@@ -73,6 +75,11 @@ void setup() {
   Serial.println("Load_cell: grams Position: mm");
 }
 
+// main loop: This loop currently
+//      - checks wether eStop is hit
+//      - stops motor if eStop is hit
+//      - sends the data via serial comms
+//      - recieves commands via serial
 void loop() {
 
   //read the eStop Input Pin and write the result to eStop variable
@@ -83,7 +90,7 @@ void loop() {
   }
 
   // if eStop is pressed, stop the motor
-  if(eStop){
+  if(eStop || digital_eStop){
     stopMotor();
     Serial.println("Error: E-STOP pressed! Motor halted");
   }
@@ -95,8 +102,7 @@ void loop() {
 #endif
   
     // get (smoothed) value from the scale (if available)
-    if (waage_hasUpdate() && autoWaage ) {
-											 
+    if (waage_hasUpdate() && autoWaage ) {						 
       getScaleAndPosition();
     }
   }
@@ -120,42 +126,26 @@ void loop() {
     else if (inByte == 'p') pressTestPosition(); //carry out a compression test
     else if (inByte == 'k') pressTestForce(); //carry out a compression test
     else if (inByte == 'z') setMotorSpeed(); //read the set speed from the stepper
-  }
+  }  // end of recieve commands
 }  // end of (main) loop()
 
-// void getScaleAndPositionFancy() {
-//   float measurement = LoadCell.getData();  // Abrufen des Messwertes von der Wägezelle
-//   float position = getPosition(); // Position vor dem Drucken abrufen
-//   unsigned long time = millis();  // Aktuelle Zeit abrufen
-
-//   // Konvertiere die Float- und Zeitwerte in Binärdaten
-//   byte buffer[12]; // Ein Array für effiziente Übertragung (4 Bytes für jede Zahl)
-  
-//   memcpy(buffer, &measurement, sizeof(measurement)); // Kopiere den Messwert (float) in das Array
-//   memcpy(buffer + 4, &position, sizeof(position));   // Kopiere die Position (float) ins Array
-//   memcpy(buffer + 8, &time, sizeof(time));           // Kopiere die Zeit (unsigned long) ins Array
-
-//   // Sende alle Daten auf einmal über Serial.write()
-//   Serial.write(buffer, sizeof(buffer));
-// }
-
-void getScaleAndPosition(){
+// this function pulls the latest data from the load cell and 
+// sends Load, Position and Time via serial comms
+float getScaleAndPosition(){
   float measurement = LoadCell.getData();
-  float position = getPosition(); // Position vor dem Drucken abrufen
+  float position = getPosition();
 
-  // Erstelle einen String mit den Werten und sende ihn auf einmal
-								 
+  // compose the data into one string
   String output = "Load:" + String(measurement, 0) + 
                  " Pos:" + String(position, 2) + 
                  " Time:" + String(millis());
 
-  // Erstelle einen String mit den Werten und sende ihn auf einmal
-  // String output = "Load:" + String(measurement, 0) + 
-  //                 " Pos:" + String(position, 2);
-  
-  Serial.println(output); // Sende alle Informationen in einem Aufruf
+  Serial.println(output);
+  return measurement;
 }
 
+// this function pulls the latest data from the load cell and 
+// sends it via serial comms
 float getScaleMeasurement(){
   float measurement = LoadCell.getData();
   Serial.print("Load:");
@@ -166,8 +156,7 @@ float getScaleMeasurement(){
 void tareScale(){
   LoadCell.tare();
   Serial.println("Tare complete");
-  
-}
+} // end of tareScale()
 
 void setMotorSpeed(){
   float input = 0;
@@ -190,9 +179,9 @@ void setMotorSpeed(){
   Serial.println(input);
 
   setSpeed(float(input));
-}
+} // end of setMotorSpeed()
 
-// This function carrys out a compression test until a specified force
+// This function carrys out a compression test until a specified force is reached
 void pressTestForce(){
   float input = 0;
   Serial.print("Compression Test (Force: ");
@@ -237,7 +226,6 @@ void pressTestForce(){
     Serial.print("Press cycle: ");
     Serial.println(n);
 
-    // TODO change the 1000 value to the desired press force
     moveTillForce("down", pressForce, 0);
     Serial.print("Debug: BackupPoint: ");
     Serial.println(specimenHeight - 1);
@@ -245,13 +233,15 @@ void pressTestForce(){
   }
 }  // end of pressTestForce()
 
-// This function carrys out a compression test until a specified deformation
+// This function carrys out a compression test until a specified deformation is reached
 void pressTestPosition(){
+  // First ask the user how many tes cycles to run
   float input = 0;
   Serial.print("Compression Test (Deformation: ");
   Serial.print(pressDeformation);
   Serial.println(" mm)\nHow many Press Cycles:");
-  
+
+  // this loop blocks all movement and communication
   while(true){
     if (Serial.available() > 0) {
       input = Serial.parseFloat();
@@ -261,6 +251,7 @@ void pressTestPosition(){
     }
   }
 
+  // Confirm the entered number to the user
   if(input == 0){
     Serial.println("Error: No cycles were entered!");
   }
@@ -271,6 +262,7 @@ void pressTestPosition(){
     Serial.println(input);
   }
 
+  // Start the test
   Serial.println("Starting Compression Test...");
   tareScale();
 
@@ -278,7 +270,7 @@ void pressTestPosition(){
   moveTillForce("down", touchdownForce);
   float specimenHeight = getPosition();
   blockingMove(specimenHeight - 2);
-  setSpeed(testSpeed);
+  setSpeed(slowTestSpeed);
   moveTillForce("down", touchdownForce);
   specimenHeight = getPosition();
   setSpeed(maxSpeed);
@@ -301,7 +293,7 @@ void pressTestPosition(){
     Serial.println(millis());
 
     if (n % slowTestsEvery == 0){
-      setSpeed(testSpeed);
+      setSpeed(slowTestSpeed);
 								   
     }
     
@@ -314,7 +306,7 @@ void pressTestPosition(){
       setSpeed(maxSpeed);
     }
   }
-}  // end of pressTestForce()
+}  // end of pressTestPosition()
 
 // change the state of the automatic read out of the scale
 void setAutoWaage(){
@@ -482,7 +474,13 @@ void blockingMove(float _pos){
 
   while(isMotorRunning() && digitalRead(eStopPin) == 1){
     if (waage_hasUpdate()) {
-      getScaleAndPosition();
+      float measuredForce = getScaleAndPosition();
+      if (measuredForce > maxForce){
+        stopMotor();
+        digital_eStop = true;
+        String output = "Stopped due to MaxForce; Measured Force:" + String(measuredForce, 0);
+        Serial.println(output);
+      }
     }
 #if debugRunCommands
     Serial.println("Run in blockingMove()");
@@ -490,7 +488,7 @@ void blockingMove(float _pos){
   }
   
   stopMotor();
-}
+}  // end of blockingMove()
 
 	   
 									 
