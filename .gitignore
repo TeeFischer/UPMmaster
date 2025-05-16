@@ -1,0 +1,5 @@
+# exclude the folder Hardware
+/Hardware/
+
+# exclude windows links
+*.lnk
