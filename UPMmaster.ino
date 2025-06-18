@@ -252,6 +252,8 @@ void pressTestForce(){
     Serial.println(specimenHeight - 1);
     blockingMove(specimenHeight - 1);
   }
+
+  Serial.print("Test complete!");
 }  // end of pressTestForce()
 
 // This function carrys out a compression test until a specified deformation is reached
@@ -327,6 +329,8 @@ void pressTestPosition(){
       setSpeed(maxSpeed);
     }
   }
+
+  Serial.print("Test complete!");
 }  // end of pressTestPosition()
 
 // change the state of the automatic read out of the scale
