@@ -6,10 +6,14 @@ void blockingMove(float _pos);
 #include <Controllino.h>
 #include "waage.h"
 #include "fastStepper.h"
+#include "DHT22.h"
 
 #define debugRunCommands false
 #define debugComms false
 #define eStopPin CONTROLLINO_I18
+#define pinDATA CONTROLLINO_D18  // Pin for ambient sensor (SDA, or almost any other I/O pin)
+// motor pins are defined in fastStepper.h
+// scale (force sensor) pins are defined in waage.h
 
 volatile bool eStop = false;
 volatile bool digital_eStop = false;
@@ -309,9 +313,14 @@ void pressTestPosition(){
   for (int n = 0; n < input; n++){
     Serial.print("Press cycle: ");
     Serial.print(n);
+
     if (n % slowTestsEvery == 0){
       Serial.print(", Slow Cycle");
+      float t = dht22.getTemperature();
+      float h = dht22.getHumidity();
+      Serial.print("h: " + String(h, 1) + " t: " + String(t, 1));
     }
+
     Serial.print(", Time: ");
     Serial.println(millis());
 
