@@ -20,6 +20,7 @@ volatile bool digital_eStop = false;
 volatile bool eStop_old = false;
 bool isHoming = false;
 
+// User Settings
 #define maxForce    200000   // maxmimum force at which the machine should e-stop
 #define touchdownForce 100   // (in gramms) force that has to be exceeded to count a touchdown
 #define pressForce   50000   // (in gramms) target force for the press test
@@ -259,7 +260,7 @@ void pressTestForce(){
     blockingMove(specimenHeight - 1);
   }
 
-  Serial.print("Test complete!");
+  Serial.println("Test complete!");
 }  // end of pressTestForce()
 
 // This function carrys out a compression test until a specified deformation is reached
@@ -312,7 +313,7 @@ void pressTestPosition(){
   blockingMove(specimenHeight - 1);
 
   // do the number of requested press cycles
-  for (int n = 0; n < input; n++){
+  for (long n = 0; n < input; n++){
     Serial.print("Press cycle: ");
     Serial.print(n);
 
@@ -341,7 +342,7 @@ void pressTestPosition(){
     }
   }
 
-  Serial.print("Test complete!");
+  Serial.println("Test complete!");
 }  // end of pressTestPosition()
 
 // change the state of the automatic read out of the scale
