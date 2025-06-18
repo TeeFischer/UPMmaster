@@ -320,7 +320,7 @@ void pressTestPosition(){
       Serial.print(", Slow Cycle");
       float t = dht22.getTemperature();
       float h = dht22.getHumidity();
-      Serial.print("h: " + String(h, 1) + " t: " + String(t, 1));
+      Serial.print(", h: " + String(h, 1) + ", t: " + String(t, 1));
     }
 
     Serial.print(", Time: ");
