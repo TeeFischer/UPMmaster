@@ -32,6 +32,8 @@ bool setupComplete = false;
 
 bool autoWaage = true;  //defines wether the scale is read in the loop or just on demand
 
+DHT22 dht22(pinDATA);  // setup the ambient sensor object
+
 // Interrupt Service Routine (ISR)
 void endstopISR() {
   // this statements checks wether the machine is homing
