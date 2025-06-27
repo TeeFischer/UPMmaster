@@ -7,6 +7,7 @@ void blockingMove(float _pos);
 #include "waage.h"
 #include "fastStepper.h"
 #include "DHT22.h"
+#include <CRC32.h>  // Bibliothek für Prüfsumme von Rob Tillaart  https://github.com/RobTillaart/CRC
 
 #define debugRunCommands false
 #define debugComms false
@@ -148,14 +149,25 @@ void loop() {
 
 // this function pulls the latest data from the load cell and 
 // sends Load, Position and Time via serial comms
-float getScaleAndPosition(){
+float getScaleAndPosition() {
+  CRC32 crc;
+
   float measurement = LoadCell.getData();
   float position = getPosition();
+  unsigned long timestamp = millis();
 
-  // compose the data into one string
-  String output = "Load:" + String(measurement, 0) + 
-                 " Pos:" + String(position, 2) + 
-                 " Time:" + String(millis());
+  // Rohdaten-String im CSV-Format (einfach zu parsen)
+  String data = String(measurement, 2) + "," + 
+                String(position, 2) + "," + 
+                String(timestamp);
+
+  // Prüfsumme (CRC32) berechnen
+  //uint32_t checksum = CRC32::calculate(data.c_str(), data.length());
+  crc.add(data.c_str(), data.length());
+  uint32_t checksum = crc.calc();
+
+  // Gesamtausgabe mit Start- und Endmarkierungen
+  String output = "<" + data + "," + String(checksum, HEX) + ">";
 
   Serial.println(output);
   return measurement;
